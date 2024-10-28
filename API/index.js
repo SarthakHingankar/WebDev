@@ -1,4 +1,3 @@
-// Importing the required dependencies
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -6,10 +5,26 @@ const url = require("url");
 const mysql = require("mysql2");
 const PORT = 3000;
 
-let users = [
-  { id: 1, name: "Alice" },
-  { id: 2, name: "Bob" },
-];
+const pool = mysql.createPool({
+  host: "localhost",
+  user: "root",
+  password: "Sarthak@17",
+  database: "test",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+});
+
+const queryDatabase = async (query, params) => {
+  return new Promise((resolve, reject) => {
+    pool.query(query, params, (error, results) => {
+      if (error) {
+        return reject(error);
+      }
+      resolve(results);
+    });
+  });
+};
 
 const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url, true);
@@ -23,62 +38,66 @@ const server = http.createServer((req, res) => {
   }
 });
 
-function handleApiRequests(req, res, req_path, method) {
+const runQuery = async (query, params) => {
+  try {
+    const results = await queryDatabase(query, params);
+    return JSON.stringify({ results });
+  } catch (error) {
+    console.error("Error executing query:", error);
+    return JSON.stringify({ error });
+  }
+};
+
+async function handleApiRequests(req, res, req_path, method) {
   if (method === "GET" && req_path === "/users") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify(users));
-  } else if (method === "GET" && req_path.startsWith("/users/")) {
+    const result = await runQuery("SELECT * FROM users;");
+    return res.end(result);
+  } else if (method === "GET") {
     const id = parseInt(req_path.split("/").pop());
-    const user = users.find((user) => user.id === id);
-    if (user) {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(user));
-    } else {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "User not found" }));
-    }
-  } else if (method === "POST" && req_path.startsWith("/users")) {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    const result = await runQuery("SELECT * FROM users WHERE id = ?;", [id]);
+    return res.end(result);
+  } else if (method === "POST") {
     let body = "";
     req.on("data", (chunk) => {
       body += chunk;
     });
-    req.on("end", () => {
-      const newUser = { id: users.length + 1, ...JSON.parse(body) };
-      users.push(newUser);
+    req.on("end", async () => {
+      if (body.length === 0) {
+        return res.end(JSON.stringify({ error: "No data received" }));
+      }
+      const { username, email, password } = JSON.parse(body);
       res.writeHead(201, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(newUser));
+      const result = await runQuery(
+        "INSERT INTO users (username, email, password) VALUES (?, ?, ?) ;",
+        [username, email, password]
+      );
+      return res.end(result);
     });
-  } else if (method === "DELETE" && req_path.startsWith("/users/")) {
+  } else if (method === "DELETE") {
     const id = parseInt(req_path.split("/").pop());
-    const index = users.findIndex((user) => user.id === id);
-    if (index !== -1) {
-      users.splice(index, 1);
-      users.forEach((user, index) => {
-        user.id = index + 1;
-      });
-      res.writeHead(204);
-      res.end();
-    } else {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "User not found" }));
-    }
-  } else if (method === "PUT" && req_path.startsWith("/users/")) {
+    res.writeHead(204);
+    const result = await runQuery("DELETE FROM users WHERE id = ?;", [id]);
+    return res.end();
+  } else if (method === "PUT") {
     const id = parseInt(req_path.split("/").pop());
-    const user = users.find((user) => user.id === id);
-    if (user) {
-      let body = "";
-      req.on("data", (chunk) => {
-        body += chunk;
-      });
-      req.on("end", () => {
-        Object.assign(user, JSON.parse(body));
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(user));
-      });
-    } else {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ message: "User not found" }));
-    }
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", async () => {
+      if (body.length === 0) {
+        return res.end(JSON.stringify({ error: "No data received" }));
+      }
+      const { username, email, password } = JSON.parse(body);
+      res.writeHead(200);
+      const result = await runQuery(
+        "UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?;",
+        [username, email, password, id]
+      );
+      return res.end();
+    });
   } else {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ message: "Route not found" }));
