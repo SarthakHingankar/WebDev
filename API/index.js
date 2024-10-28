@@ -26,6 +26,16 @@ const queryDatabase = async (query, params) => {
   });
 };
 
+const runQuery = async (query, params) => {
+  try {
+    const results = await queryDatabase(query, params);
+    return JSON.stringify({ results });
+  } catch (error) {
+    console.error("Error executing query:", error);
+    return JSON.stringify({ error });
+  }
+};
+
 const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const req_path = parsedUrl.pathname;
@@ -37,16 +47,6 @@ const server = http.createServer((req, res) => {
     handleStaticFiles(req, res);
   }
 });
-
-const runQuery = async (query, params) => {
-  try {
-    const results = await queryDatabase(query, params);
-    return JSON.stringify({ results });
-  } catch (error) {
-    console.error("Error executing query:", error);
-    return JSON.stringify({ error });
-  }
-};
 
 async function handleApiRequests(req, res, req_path, method) {
   if (method === "GET" && req_path === "/users") {
