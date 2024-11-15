@@ -9,8 +9,8 @@ const PORT = 3000;
 const Client = new S3Client({
   region: "ap-south-1",
   credentials: {
-    accessKeyId: "AKIA2RP6HZ3HX7R3AFF2",
-    secretAccessKey: "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",
+    accessKeyId: "(nope)",
+    secretAccessKey: "(nope)",
   },
 });
 
