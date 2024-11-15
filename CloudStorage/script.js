@@ -1,21 +1,35 @@
 let page = 1;
+let selectedCategory = "Random";
 const exploreContainer = document.getElementById("explore-container");
 const loader = document.getElementById("loader");
 
-// Function to fetch and display images
-async function loadImages() {
+async function fetchData(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return await response.text();
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function loadImages(category) {
   loader.style.display = "block";
   try {
-    const images = Array.from({ length: 15 }).map((_, index) => ({
-      url: `https://picsum.photos/300?random=${
-        Math.floor(Math.random() * 1000) + index
-      }`,
-    }));
+    const imagesUrl = await Promise.all(
+      Array.from({ length: 15 }).map(async () => {
+        const result = await fetchData(
+          `http://localhost:3000/img/${category}`
+        ).catch(() => null);
+        return { url: result };
+      })
+    );
 
-    images.forEach((image) => {
+    imagesUrl.forEach((image) => {
+      if (!image.url) return;
       const imageItem = document.createElement("div");
       imageItem.className = "explore-item";
-      imageItem.innerHTML = `<img src="${image.url}" alt="Explore Image">`;
+      imageItem.innerHTML = `<img src="${image.url}" alt="${category} Image">`;
       exploreContainer.appendChild(imageItem);
     });
 
@@ -25,12 +39,25 @@ async function loadImages() {
   }
 }
 
-// Scroll event listener for infinite scroll
+async function filterImages(category) {
+  selectedCategory = category;
+  exploreContainer.innerHTML = `<div class="loading-placeholder">Loading...</div>`;
+  try {
+    await loadImages(selectedCategory);
+  } finally {
+    const placeholder = document.querySelector(".loading-placeholder");
+    if (placeholder) placeholder.remove();
+  }
+}
+
+let isLoading = false;
+
 window.addEventListener("scroll", () => {
+  if (isLoading) return;
   if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
-    loadImages();
+    isLoading = true;
+    loadImages(selectedCategory).finally(() => (isLoading = false));
   }
 });
 
-// Initial load
-loadImages();
+loadImages(selectedCategory);

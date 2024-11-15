@@ -15,9 +15,20 @@
         <a href="#settings">Settings</a>
       </nav>
     </header>
-    <div id="explore-container">
-      <!-- Images will load here dynamically -->
+    <div id="category-buttons">
+      <button class="category-btn" onclick="filterImages('Random')">
+        Random
+      </button>
+      <button class="category-btn" onclick="filterImages('Abstract')">
+        Abstract
+      </button>
+      <button class="category-btn" onclick="filterImages('City')">City</button>
+      <button class="category-btn" onclick="filterImages('Food')">Food</button>
+      <button class="category-btn" onclick="filterImages('Nature')">
+        Nature
+      </button>
     </div>
+    <div id="explore-container"></div>
     <div id="loader">Loading...</div>
     <script src="script.js"></script>
   </body>
