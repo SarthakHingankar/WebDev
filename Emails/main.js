@@ -1,8 +1,10 @@
 const SMTPServer = require("smtp-server").SMTPServer;
 
 const server = new SMTPServer({
+  allowInsecureAuth: true,
+  authOptional: true,
   onConnect(session, callback) {
-    console.log("New connection from:", session.remoteAddress);
+    console.log("New connection from:", session.id);
     callback();
   },
   onRcptTo(address, session, callback) {
