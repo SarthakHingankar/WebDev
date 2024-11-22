@@ -29,6 +29,20 @@ const saveEmail = async (mail) => {
   }
 };
 
+const queryEmail = async (emailId) => {
+  const params = {
+    TableName: "Emails",
+    Key: { email_id: emailId },
+  };
+
+  try {
+    const result = await dynamoDB.get(params).promise();
+    console.log("Email retrieved:", result.Item);
+  } catch (err) {
+    console.error("Error fetching email:", err);
+  }
+};
+
 const server = new SMTPServer({
   allowInsecureAuth: true,
   authOptional: true,
@@ -53,7 +67,6 @@ const server = new SMTPServer({
       email += chunk.toString();
     });
     stream.on("end", () => {
-      console.log("Email received:");
       simpleParser(email, { skipHtmlToText: true }, (err, parsed) => {
         if (err) {
           console.error("Error parsing email:", err);
