@@ -1,4 +1,33 @@
 const SMTPServer = require("smtp-server").SMTPServer;
+const { simpleParser } = require("mailparser");
+const AWS = require("aws-sdk");
+require("dotenv").config();
+
+const dynamoDB = new AWS.DynamoDB.DocumentClient({
+  region: "us-east-1",
+  accessKeyId: process.env.AWS_ACCESS_KEY,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
+
+const saveEmail = async (mail) => {
+  const email = {
+    TableName: "Emails",
+    Item: {
+      email_id: mail.to.text,
+      sender: mail.from.text,
+      subject: mail.subject.text,
+      body: mail.text,
+      timestamp: new Date().toISOString(),
+    },
+  };
+
+  try {
+    await dynamoDB.put(email).promise();
+    console.log("Email saved successfully!");
+  } catch (err) {
+    console.error("Error saving email:", err);
+  }
+};
 
 const server = new SMTPServer({
   allowInsecureAuth: true,
@@ -24,7 +53,15 @@ const server = new SMTPServer({
       email += chunk.toString();
     });
     stream.on("end", () => {
-      console.log("Email received:", email);
+      console.log("Email received:");
+      simpleParser(email, { skipHtmlToText: true }, (err, parsed) => {
+        if (err) {
+          console.error("Error parsing email:", err);
+          return;
+        }
+
+        saveEmail(parsed);
+      });
       callback();
     });
     stream.on("error", (err) => {
