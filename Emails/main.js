@@ -9,14 +9,15 @@ const dynamoDB = new AWS.DynamoDB.DocumentClient({
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 });
 
-const saveEmail = async (mail) => {
+const saveEmail = async (mail, id) => {
   const email = {
     TableName: "Emails",
     Item: {
-      email_id: mail.to.text,
-      sender: mail.from.text,
-      subject: mail.subject.text,
-      body: mail.text,
+      email_id: id,
+      sender: mail.from.text || "Unknown Sender",
+      receiver: mail.to.text || "Unknown Receiver",
+      subject: mail.subject || "No Subject",
+      body: mail.text || "No Body",
       timestamp: new Date().toISOString(),
     },
   };
@@ -26,18 +27,26 @@ const saveEmail = async (mail) => {
     console.log("Email saved successfully!");
   } catch (err) {
     console.error("Error saving email:", err);
+    callback(new Error("Failed to parse email"));
+    return;
   }
 };
 
-const queryEmail = async (emailId) => {
+const queryEmail = async (user) => {
   const params = {
     TableName: "Emails",
-    Key: { email_id: emailId },
+    IndexName: "receiver",
+    KeyConditionExpression: "receiver = :receiver",
+    ExpressionAttributeValues: {
+      ":receiver": user,
+    },
+    ProjectionExpression: "sender, receiver, subject, body",
+    Limit: 10,
   };
 
   try {
-    const result = await dynamoDB.get(params).promise();
-    console.log("Email retrieved:", result.Item);
+    const result = await dynamoDB.query(params).promise();
+    console.log("Email retrieved:", result.Items);
   } catch (err) {
     console.error("Error fetching email:", err);
   }
@@ -73,7 +82,7 @@ const server = new SMTPServer({
           return;
         }
 
-        saveEmail(parsed);
+        saveEmail(parsed, session.id);
       });
       callback();
     });
@@ -83,6 +92,8 @@ const server = new SMTPServer({
     });
   },
 });
+
+queryEmail("Someone@testruns.icu");
 
 const PORT = 25;
 
