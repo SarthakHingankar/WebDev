@@ -96,7 +96,6 @@ const server = new SMTPServer({
 queryEmail("Someone@testruns.icu");
 
 const PORT = 25;
-
 server.listen(PORT, () => {
   console.log(`SMTP server listening on port ${PORT}`);
 });

@@ -1,0 +1,48 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f4f4f9;
+}
+
+header {
+  background-color: #4caf50;
+  color: white;
+  padding: 1rem;
+  text-align: center;
+  width: 100%;
+}
+
+.container {
+  margin: 20px;
+  padding: 20px;
+  background: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  width: 80%;
+  max-width: 600px;
+}
+
+.email-address {
+  font-weight: bold;
+  color: #333;
+  margin: 10px 0;
+}
+
+.emails {
+  margin-top: 20px;
+}
+
+.email {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+.email:hover {
+  background-color: #f9f9f9;
+}
