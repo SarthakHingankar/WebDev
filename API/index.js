@@ -8,7 +8,7 @@ const PORT = 3000;
 const pool = mysql.createPool({
   host: "localhost",
   user: "root",
-  password: "Sarthak@17",
+  password: "(nah)",
   database: "test",
   waitForConnections: true,
   connectionLimit: 10,
@@ -93,8 +93,7 @@ async function handleApiRequests(req, res, req_path, method) {
       const { username, email, password } = JSON.parse(body);
       res.writeHead(200);
       const result = await runQuery(
-        "UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?;",
-        [username, email, password, id]
+        `UPDATE users SET username = ${username}, email = ${email}, password = ${password} WHERE id = ${id};`
       );
       return res.end();
     });
