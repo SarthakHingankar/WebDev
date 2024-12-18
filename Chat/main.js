@@ -48,16 +48,15 @@ app.get("/", (req, res) => {
 
   jwt.verify(token, secret, (err, decode) => {
     if (err) {
-      console.log("Token verification failed:", err);
       return res.redirect("/login");
     }
 
-    return res.sendFile(__dirname + "/public/home.html");
+    return res.sendFile(path.join(__dirname, "public", "home.html"));
   });
 });
 
 app.get("/login", (req, res) => {
-  res.sendFile(__dirname + "/public/login.html");
+  res.sendFile(path.join(__dirname, "public", "login.html"));
 });
 
 app.post("/login", async (req, res) => {
@@ -89,7 +88,7 @@ app.post("/login", async (req, res) => {
 });
 
 app.get("/signup", (req, res) => {
-  res.sendFile(__dirname + "/public/signup.html");
+  res.sendFile(path.join(__dirname, "public", "signup.html"));
 });
 
 app.post("/signup", async (req, res) => {
@@ -104,16 +103,44 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-io.on("connection", (socket) => {
-  console.log("New client connected");
+const userSocketMap = new Map();
 
-  socket.on("message", (msg) => {
-    console.log(`Message: ${msg}`);
-    io.emit("msg", msg);
+io.use((socket, next) => {
+  const cookies = socket.handshake.headers.cookie;
+  const auth = cookies
+    .split("; ")
+    .find((c) => c.startsWith("authToken="))
+    ?.split("=")[1];
+  let uid = jwt.verify(auth, secret, (err, decoded) => {
+    if (err) {
+      return err;
+    }
+    return decoded;
+  });
+  userSocketMap.set(uid, socket.id);
+  console.log(`User ${uid} connected.`);
+  next();
+});
+
+io.on("connection", (socket) => {
+  socket.on("message", ({ toUser, message }) => {
+    const recipientSocketId = userSocketMap.get(toUser);
+
+    if (recipientSocketId) {
+      io.to(recipientSocketId).emit("message", message);
+    } else {
+      console.log(`User ${toUser} is not connected.`);
+    }
   });
 
   socket.on("disconnect", () => {
-    console.log("Client disconnected");
+    for (let [uid, socketId] of userSocketMap.entries()) {
+      if (socketId === socket.id) {
+        userSocketMap.delete(uid);
+        console.log(`${uid} disconnected.`);
+        break;
+      }
+    }
   });
 });
 
