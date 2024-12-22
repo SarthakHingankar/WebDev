@@ -55,6 +55,40 @@ app.get("/", (req, res) => {
   });
 });
 
+app.get("/friends", async (req, res) => {
+  const token = req.cookies.authToken;
+  const user = jwt.verify(token, secret);
+  const friends = await query(
+    `SELECT friends FROM uid WHERE username = '${user}'`
+  );
+  const friend = friends[0]?.friends || [];
+  res.json(friend);
+});
+
+app.post("/friends", async (req, res) => {
+  const friend = req.body.contactName;
+  console.log(friend);
+  const user = jwt.verify(req.cookies.authToken, secret);
+
+  const exists = await query(
+    `SELECT EXISTS(SELECT 1 FROM uid WHERE username = '${friend}') AS user_exists;`
+  );
+  if (exists[0].user_exists) {
+    console.log("user exists");
+    try {
+      await query(`UPDATE uid
+        SET friends = JSON_ARRAY_APPEND(friends, '$', '${friend}')
+        WHERE username = '${user}'`);
+      console.log("Friend added successfully.");
+      return res.status(200).json({ message: "Friend added successfully" });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  } else {
+    return res.status(404).json({ message: "Invalid request" });
+  }
+});
+
 app.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
